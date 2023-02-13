@@ -1,0 +1,46 @@
+sudo ssh <user>@grenoble.iot-lab.info
+
+//Obtener SO y primeros firmwares //
+
+mkdir openwsn
+cd openwsn
+git clone https://github.com/openwsn-berkeley/openwsn-fw.git
+cd openwsn-fw
+cat projects/common/01bsp_uart/01bsp_uart.c
+ls projects/common/
+scons board=iot-lab_A8-M3 toolchain=armgcc bsp_uart
+ls build/iot-lab_A8-M3_armgcc/projects/common/
+
+///// Crear el experimento ////////
+iotlab-auth -u <user> 
+iotlab-experiment submit -n lab09iot -d 240 -l 2,archi=a8:at86rf231+site=grenoble 
+iotlab-ssh --verbose wait-for-boot
+iotlab-experiment get -i 355825 -p
+iotlab-experiment get -i 355825 -n
+
+///////Desarrollo/////////
+cd A8
+for name in 01bsp_uart_prog 01bsp_radio_tx_prog 01bsp_radio_rx_prog 01bsp_radio_rx.py 01bsp_eui64_prog; do wget https://raw.githubusercontent.com/wiki/iot-lab/iot-lab/firmwares/openwsn/$name; done
+ls
+
+////Transmisor////
+ping node-a8-103
+ssh root@node-a8-103
+ls A8
+flash_a8_m3 A8/01bsp_uart_prog 
+socat  open:/dev/ttyA8_M3,b500000,echo=0,raw -
+
+
+flash_a8_m3 A8/01bsp_radio_tx_prog
+
+
+/////Receptor//////
+ssh root@node-a8-104
+flash_a8_m3 01bsp_radio_rx_prog
+python A8/01bsp_radio_rx.py
+
+
+
+flash_a8_m3 A8/01bsp_eui64_prog
+socat  open:/dev/ttyA8_M3,b500000,echo=0,raw -
+
