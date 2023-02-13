@@ -1,0 +1,92 @@
+------------------------------ Crear clave SSH en SO --------------------------------
+
+ssh-keygen -t rsa
+ls ~/.ssh/
+cat ~/.ssh/id_rsa.pub
+
+---------------------------------- Conexion SSH --------------------------------------
+
+ssh <user>@saclay.iot-lab.info
+
+-------------------------------- Crear experimento ------------------------------------
+
+iotlab-auth -u utn2023iot7
+iotlab-experiment submit -n riot_coap_m3 -d 90 -l 2,archi=m3:at86rf231+site=saclay
+
+------------------------------- Inicio de experimento ------------------------------------
+
+iotlab-experiment get -i <exp_id> -p
+iotlab-experiment get -i <exp_id> -n
+
+--------------------------- Conseguir repositorio de RIOT --------------------------------
+
+mkdir -p ~/riot
+cd ~/riot
+git clone https://github.com/RIOT-OS/RIOT.git -b 2020.10-branch
+cd RIOT
+
+-------------------------- Obtener firmware Router de borde--------------------------------
+
+source /opt/riot.source
+make ETHOS_BAUDRATE=500000 DEFAULT_CHANNEL=26 BOARD=iotlab-m3 -C examples/gnrc_border_router clean all
+
+----------------------------- Flashear firmware ---------------------------------------
+
+iotlab-node --flash examples/gnrc_border_router/bin/iotlab-m3/gnrc_border_router.elf -l saclay,m3,<m3_id>
+
+cd
+
+----------------------------- Configurar red ---------------------------------------
+
+ip -6 route
+sudo ethos_uhcpd.py m3-<m3_id> tap0 2001:660:3207:04c1::1/64
+
+-------------------------- Obtener firmware CoAP server -------------------------------
+
+(Abrir otra terminal)
+
+ssh utn2023iot7@saclay.iot-lab.info
+cd riot/RIOT
+source /opt/riot.source
+make DEFAULT_CHANNEL=26 BOARD=iotlab-m3 -C examples/nanocoap_server clean all
+
+------------------------- Flashear firmware CoAP sever-----------------------------------
+
+iotlab-node --flash examples/nanocoap_server/bin/iotlab-m3/nanocoap_server.elf -l saclay,m3,<m3_id>
+
+---------------------- IPv6 del servidor coap -------------------------------------
+
+(Abrir terminal 1 y dar enter)
+
+nib neigh
+
+------------------ CLiente de nano coap ----------------------------
+
+aiocoap-client coap://[2001:660:3207:4c1:e4d3:6fec:df36:bbe]/riot/board
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
